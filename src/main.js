@@ -84,10 +84,16 @@ function navigateTo(url) {
 
 // 初始化事件监听
 function initEventListeners() {
-  // 导航按钮
-  document.getElementById('btn-back').onclick = () => webview.goBack();
-  document.getElementById('btn-forward').onclick = () => webview.goForward();
-  document.getElementById('btn-refresh').onclick = () => webview.reload();
+  // 导航按钮 - iframe 不支持 goBack/goForward，使用 history
+  document.getElementById('btn-back').onclick = () => {
+    try { webview.contentWindow.history.back(); } catch(e) { console.log('无法后退'); }
+  };
+  document.getElementById('btn-forward').onclick = () => {
+    try { webview.contentWindow.history.forward(); } catch(e) { console.log('无法前进'); }
+  };
+  document.getElementById('btn-refresh').onclick = () => {
+    webview.src = webview.src;
+  };
   document.getElementById('btn-home').onclick = () => navigateTo(BUILTIN_SITES[0].url);
 
   // URL 输入
@@ -117,15 +123,15 @@ function initEventListeners() {
   // 清除历史
   document.getElementById('btn-clear-history').onclick = clearHistory;
 
-  // WebView 事件
-  webview.addEventListener('did-navigate', (e) => {
-    urlInput.value = e.url;
-    addToHistory(document.title || e.url, e.url);
-  });
-
-  webview.addEventListener('did-finish-load', () => {
-    // 注入自定义脚本
-    injectScripts();
+  // iframe 加载事件
+  webview.addEventListener('load', () => {
+    try {
+      const iframeUrl = webview.contentWindow.location.href;
+      urlInput.value = iframeUrl;
+      addToHistory(iframeUrl, iframeUrl);
+    } catch(e) {
+      // 跨域限制，无法获取 URL
+    }
   });
 }
 
