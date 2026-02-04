@@ -108,6 +108,11 @@ function getInjectScript() {
         target.style.background = 'black';
         target._isFullscreen = true;
         window.scrollTo(0, 0);
+        
+        // 调用 Tauri 进入全屏并隐藏菜单栏
+        if (window.__TAURI__ && window.__TAURI__.core) {
+          window.__TAURI__.core.invoke('toggle_fullscreen', { enter: true });
+        }
       } else {
         // 退出全屏
         if (target._originParent) {
@@ -127,6 +132,11 @@ function getInjectScript() {
           target.style.background = target._originStyle.background;
         }
         target._isFullscreen = false;
+        
+        // 调用 Tauri 退出全屏并显示菜单栏
+        if (window.__TAURI__ && window.__TAURI__.core) {
+          window.__TAURI__.core.invoke('toggle_fullscreen', { enter: false });
+        }
       }
     };
 

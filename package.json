@@ -1,14 +1,19 @@
 {
-  "name": "joyflix-tauri",
+  "name": "joyflix",
   "version": "1.0.0",
-  "description": "Joyflix Windows 版本 - 基于 Tauri",
+  "description": "Joyflix - 双平台版本 (Windows: Electron, macOS: Tauri)",
+  "main": "src-electron/main.js",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "electron:dev": "electron .",
+    "electron:build": "electron-builder --win",
+    "electron:start": "electron ."
   },
-  "dependencies": {},
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0"
+    "@tauri-apps/cli": "^2.0.0",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
   }
 }
