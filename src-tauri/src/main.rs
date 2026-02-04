@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct HistoryItem {
@@ -83,7 +84,26 @@ fn clear_history() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn open_site(app: tauri::AppHandle, url: String, _title: String) -> Result<(), String> {
+    // 获取主窗口，直接导航到目标URL
+    let main_window = app.get_webview_window("main").ok_or("找不到主窗口")?;
+    main_window.navigate(url.parse().map_err(|e: url::ParseError| e.to_string())?).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn go_home(app: tauri::AppHandle) -> Result<(), String> {
+    // 返回主页（站点选择页面）
+    let main_window = app.get_webview_window("main").ok_or("找不到主窗口")?;
+    main_window.navigate("http://tauri.localhost/".parse().unwrap()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn main() {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::Manager;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
@@ -91,8 +111,48 @@ fn main() {
             save_history,
             load_config,
             save_config,
-            clear_history
+            clear_history,
+            open_site,
+            go_home
         ])
+        .setup(|app| {
+            // 创建菜单项
+            let home_item = MenuItemBuilder::with_id("home", "🏠 返回首页")
+                .accelerator("CmdOrCtrl+H")
+                .build(app)?;
+
+            let refresh_item = MenuItemBuilder::with_id("refresh", "🔄 刷新页面")
+                .accelerator("CmdOrCtrl+R")
+                .build(app)?;
+
+            // 创建菜单
+            let menu = MenuBuilder::new(app)
+                .item(&home_item)
+                .item(&refresh_item)
+                .build()?;
+
+            // 设置菜单到主窗口
+            let main_window = app.get_webview_window("main").unwrap();
+            main_window.set_menu(menu)?;
+
+            Ok(())
+        })
+        .on_menu_event(|app, event| {
+            use tauri::Manager;
+            match event.id().as_ref() {
+                "home" => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        window.navigate("http://tauri.localhost/".parse().unwrap()).ok();
+                    }
+                }
+                "refresh" => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        window.eval("location.reload()").ok();
+                    }
+                }
+                _ => {}
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

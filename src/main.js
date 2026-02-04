@@ -16,32 +16,14 @@ const BUILTIN_SITES = [
   { name: '短剧', url: 'https://www.jinlidj.com/' }
 ];
 
-// 广告域名黑名单
-const BLOCKED_DOMAINS = [
-  'ynjczy.net', 'ylbdtg.com', '662820.com',
-  'api.vparse.org', 'hyysvip.duapp.com', 'f.qcwzx.net.cn',
-  'adx.dlads.cn', 'dlads.cn', 'wuo.8h2x.com', 'strip.alicdn.com'
-];
-
 let config = { custom_sites: [], last_url: '', auto_open: false };
-
-// DOM 元素
-const webview = document.getElementById('main-webview');
-const urlInput = document.getElementById('url-input');
-const sitesPanel = document.getElementById('sites-panel');
-const historyPanel = document.getElementById('history-panel');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
   await loadConfig();
-  initEventListeners();
   renderBuiltinSites();
   renderCustomSites();
-
-  // 加载上次访问的站点
-  if (config.last_url) {
-    navigateTo(config.last_url);
-  }
+  initEventListeners();
 });
 
 // 加载配置
@@ -62,102 +44,37 @@ async function saveConfig() {
   }
 }
 
-// 导航到URL
-function navigateTo(url) {
+// 打开站点 - 使用新窗口
+async function openSite(name, url) {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = 'https://' + url;
   }
 
-  // 检查广告拦截
-  for (const domain of BLOCKED_DOMAINS) {
-    if (url.includes(domain)) {
-      console.log('已拦截广告:', url);
-      return;
-    }
+  try {
+    await invoke('open_site', { url, title: name });
+    config.last_url = url;
+    saveConfig();
+  } catch (e) {
+    console.error('打开站点失败:', e);
+    alert('打开站点失败: ' + e);
   }
-
-  webview.src = url;
-  urlInput.value = url;
-  config.last_url = url;
-  saveConfig();
 }
 
 // 初始化事件监听
 function initEventListeners() {
-  // 导航按钮 - iframe 不支持 goBack/goForward，使用 history
-  document.getElementById('btn-back').onclick = () => {
-    try { webview.contentWindow.history.back(); } catch(e) { console.log('无法后退'); }
-  };
-  document.getElementById('btn-forward').onclick = () => {
-    try { webview.contentWindow.history.forward(); } catch(e) { console.log('无法前进'); }
-  };
-  document.getElementById('btn-refresh').onclick = () => {
-    webview.src = webview.src;
-  };
-  document.getElementById('btn-home').onclick = () => navigateTo(BUILTIN_SITES[0].url);
-
-  // URL 输入
-  urlInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      navigateTo(urlInput.value);
-    }
-  });
-
-  // 面板按钮
-  document.getElementById('btn-sites').onclick = () => togglePanel(sitesPanel);
-  document.getElementById('btn-history').onclick = () => {
-    renderHistoryList();
-    togglePanel(historyPanel);
-  };
-
-  // 关闭按钮
-  document.querySelectorAll('.close-btn').forEach(btn => {
-    btn.onclick = () => {
-      btn.closest('.panel').classList.add('hidden');
-    };
-  });
-
   // 添加站点
   document.getElementById('btn-add-site').onclick = addCustomSite;
-
-  // 清除历史
-  document.getElementById('btn-clear-history').onclick = clearHistory;
-
-  // iframe 加载事件
-  webview.addEventListener('load', () => {
-    try {
-      const iframeUrl = webview.contentWindow.location.href;
-      urlInput.value = iframeUrl;
-      addToHistory(iframeUrl, iframeUrl);
-    } catch(e) {
-      // 跨域限制，无法获取 URL
-    }
-  });
-}
-
-// 切换面板显示
-function togglePanel(panel) {
-  const isHidden = panel.classList.contains('hidden');
-  // 先隐藏所有面板
-  document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
-  // 切换当前面板
-  if (isHidden) {
-    panel.classList.remove('hidden');
-  }
 }
 
 // 渲染内置站点
 function renderBuiltinSites() {
   const container = document.getElementById('builtin-sites');
   container.innerHTML = BUILTIN_SITES.map(site =>
-    `<button class="site-btn" data-url="${site.url}">${site.name}</button>`
+    `<button class="site-btn" data-url="${site.url}" data-name="${site.name}">${site.name}</button>`
   ).join('');
 
   container.querySelectorAll('.site-btn').forEach(btn => {
-    btn.onclick = () => {
-      navigateTo(btn.dataset.url);
-      sitesPanel.classList.add('hidden');
-    };
+    btn.onclick = () => openSite(btn.dataset.name, btn.dataset.url);
   });
 }
 
@@ -170,7 +87,7 @@ function renderCustomSites() {
   }
 
   container.innerHTML = config.custom_sites.map((site, index) =>
-    `<button class="site-btn" data-url="${site.url}" data-index="${index}">
+    `<button class="site-btn" data-url="${site.url}" data-name="${site.name}" data-index="${index}">
       ${site.name}
       <span class="delete-site" data-index="${index}">×</span>
     </button>`
@@ -181,8 +98,7 @@ function renderCustomSites() {
       if (e.target.classList.contains('delete-site')) {
         deleteCustomSite(parseInt(e.target.dataset.index));
       } else {
-        navigateTo(btn.dataset.url);
-        sitesPanel.classList.add('hidden');
+        openSite(btn.dataset.name, btn.dataset.url);
       }
     };
   });
@@ -219,16 +135,3 @@ function deleteCustomSite(index) {
   saveConfig();
   renderCustomSites();
 }
-
-// 注入自定义脚本
-function injectScripts() {
-  const injectCode = getInjectScript();
-  webview.executeJavaScript(injectCode).catch(console.error);
-}
-
-// 导出给其他模块使用
-window.JoyflixApp = {
-  navigateTo,
-  BUILTIN_SITES,
-  config
-};
