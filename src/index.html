@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joyflix</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 顶部工具栏 -->
+  <div id="toolbar">
+    <div class="nav-buttons">
+      <button id="btn-back" title="后退">◀</button>
+      <button id="btn-forward" title="前进">▶</button>
+      <button id="btn-refresh" title="刷新">↻</button>
+      <button id="btn-home" title="首页">🏠</button>
+    </div>
+    <input type="text" id="url-input" placeholder="输入网址或搜索...">
+    <div class="menu-buttons">
+      <button id="btn-sites" title="站点列表">📺</button>
+      <button id="btn-history" title="历史记录">📋</button>
+      <button id="btn-settings" title="设置">⚙️</button>
+    </div>
+  </div>
+
+  <!-- WebView 容器 -->
+  <div id="webview-container">
+    <webview id="main-webview" src="https://www.dandantu.cc/"></webview>
+  </div>
+
+  <!-- 站点选择面板 -->
+  <div id="sites-panel" class="panel hidden">
+    <div class="panel-header">
+      <h3>选择站点</h3>
+      <button class="close-btn">×</button>
+    </div>
+    <div class="panel-content">
+      <h4>内置站点</h4>
+      <div id="builtin-sites" class="sites-grid"></div>
+      <h4>自定义站点</h4>
+      <div id="custom-sites" class="sites-grid"></div>
+      <div class="add-site">
+        <input type="text" id="new-site-name" placeholder="站点名称">
+        <input type="text" id="new-site-url" placeholder="站点URL">
+        <button id="btn-add-site">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史记录面板 -->
+  <div id="history-panel" class="panel hidden">
+    <div class="panel-header">
+      <h3>观影记录</h3>
+      <button class="close-btn">×</button>
+    </div>
+    <div class="panel-content">
+      <div id="history-list"></div>
+      <button id="btn-clear-history">清除历史</button>
+    </div>
+  </div>
+
+  <script src="utils/inject.js"></script>
+  <script src="utils/history.js"></script>
+  <script src="utils/monitor.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
